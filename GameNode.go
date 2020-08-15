@@ -150,6 +150,7 @@ func (node *GameNode) RegretAndStrategySumsUpdate(trav *Traversal, reachProbabil
 	for hand := range reachProbability {
 		for i := 0; i < node.numActions; i++ {
 			node.strategySums[hand][i] += reachProbability[hand] * node.strategies[hand][i] * strategyWeight
+			node.strategySums[hand][i] *= strategyWeight
 			node.regrets[hand][i] += actionUtility[i][hand] - nodeUtility[hand]
 			//node.strategySums[hand][i] += reachProbability[hand] * node.strategies[hand][i]
 			if node.regrets[hand][i] > 0 {
