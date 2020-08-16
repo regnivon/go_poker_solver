@@ -122,12 +122,10 @@ func createNextBetNodes(root *GameNode, betNumber int, bets [][][]float64, defBe
 		var next *GameNode
 		if root.playerNode == 1 {
 			betSize = math.Min(math.Min(root.ipPlayerStack, sizing), root.oopPlayerStack  + lastBet)
-			fmt.Printf("sizing: %v\n", betSize)
 			next = NewGameNode(root.playerNode ^ 1, root.potSize + betSize,
 				root.ipPlayerStack - betSize, root.oopPlayerStack)
 		} else {
 			betSize = math.Min(math.Min(root.oopPlayerStack, sizing), root.ipPlayerStack + lastBet)
-			fmt.Printf("sizing: %v\n", betSize)
 			next = NewGameNode(root.playerNode ^ 1, root.potSize + betSize,
 				root.ipPlayerStack, root.oopPlayerStack - betSize)
 		}
@@ -173,14 +171,12 @@ func Train(traversal *Traversal, iterations int, treeRoot *GameNode) {
 	ipRelativeProb := RangeRelativeProbabilities(traversal.Ranges[1], traversal.Ranges[0])
 	oopRelativeProb := RangeRelativeProbabilities(traversal.Ranges[0], traversal.Ranges[1])
 
-	var oopUtil []float64
-	var ipUtil []float64
 	for i := 0; i <= iterations; i++ {
 		traversal.Iteration = i
 		traversal.Traverser = 0
-		oopUtil = treeRoot.CFRTraversal(traversal, oop, ip)
+		treeRoot.CFRTraversal(traversal, oop, ip)
 		traversal.Traverser = 1
-		ipUtil = treeRoot.CFRTraversal(traversal, ip, oop)
+		treeRoot.CFRTraversal(traversal, ip, oop)
 		if i > 0 && i % 1000 == 0 {
 			traversal.Traverser = 0
 			oopBestResponse := treeRoot.OverallBestResponse(traversal, oopRelativeProb)
@@ -191,6 +187,4 @@ func Train(traversal *Traversal, iterations int, treeRoot *GameNode) {
 			//pruneStrategiesAndRegret(treeRoot)
 		}
 	}
-	fmt.Println(len(oopUtil))
-	fmt.Println(len(ipUtil))
 }

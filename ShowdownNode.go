@@ -27,17 +27,11 @@ type ShowdownNode struct {
 }
 
 //NewShowdownNode constructs a ShowdownNode
-func NewShowdownNode(gameNode *GameNode) *ShowdownNode {
+func NewShowdownNode(gameNode *GameNode, board []poker.Card) *ShowdownNode {
 	node := ShowdownNode{GameNode: gameNode}
 	node.isTerminal = true
 	node.winUtility = node.potSize / 2.0
-	node.board = []poker.Card{
-		poker.NewCard("Ac"),
-		poker.NewCard("7s"),
-		poker.NewCard("5s"),
-		poker.NewCard("3d"),
-		poker.NewCard("2h"),
-	}
+	node.board = board
 	return &node
 }
 
