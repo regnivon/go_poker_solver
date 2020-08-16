@@ -10,6 +10,17 @@ import (
 const suits = "hscd"
 const ranks = "23456789TJQKA"
 
+func cardTo52Int(c poker.Card) int {
+	rank := c.Rank()
+	suit := c.Suit()
+	if suit == 8 {
+		suit = 3
+	} else {
+		suit = suit >> 1
+	}
+	return int( 4 * rank + suit)
+}
+
 func constructPossibleNextCards(board []poker.Card, numNext int) []poker.Card {
 	next := make([]poker.Card, numNext)
 	count := 0

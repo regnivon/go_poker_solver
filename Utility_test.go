@@ -44,3 +44,16 @@ func TestConstructPossibleNextCards(t *testing.T) {
 		assert.False(t, checkCardBoardOverlap(ans[index], board))
 	}
 }
+
+func TestCardTo52Int(t *testing.T) {
+	c1 := poker.NewCard("2s")
+	c2 := poker.NewCard("Ac")
+	c3 := poker.NewCard("Js")
+	c4 := poker.NewCard("Th")
+	c5 := poker.NewCard("7d")
+	assert.Equal(t, 0, cardTo52Int(c1))
+	assert.Equal(t, 51, cardTo52Int(c2))
+	assert.Equal(t, 36, cardTo52Int(c3))
+	assert.Equal(t, 33, cardTo52Int(c4))
+	assert.Equal(t, 22, cardTo52Int(c5))
+}
