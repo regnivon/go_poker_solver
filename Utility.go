@@ -8,6 +8,22 @@ import (
 )
 
 const suits = "hscd"
+const ranks = "23456789TJQKA"
+
+func constructPossibleNextCards(board []poker.Card, numNext int) []poker.Card {
+	next := make([]poker.Card, numNext)
+	count := 0
+	for suitIndex := range suits {
+		for rankIndex := range ranks {
+			card := poker.NewCard(string(ranks[rankIndex]) + string(suits[suitIndex]))
+			if !checkCardBoardOverlap(card, board) {
+				next[count] = card
+				count++
+			}
+		}
+	}
+	return next
+}
 
 func convertRangeToFloatSlice(rng Range) []float64 {
 	arr := make([]float64, len(rng))
@@ -15,6 +31,15 @@ func convertRangeToFloatSlice(rng Range) []float64 {
 		arr[index] = rng[index].Combos
 	}
 	return arr
+}
+
+func checkCardBoardOverlap(card poker.Card, board []poker.Card) bool {
+	for index := range board {
+		if board[index] == card {
+			return true
+		}
+	}
+	return false
 }
 
 //CheckHandOverlap returns true if the hands overlap and false otherwise
