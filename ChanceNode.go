@@ -5,10 +5,12 @@ import (
 	"sync"
 )
 
-//ChanceNode - important notes are the fact that nextCards[i] tells you which card nextNodes[i] represents
+//ChanceNode - important notes are the fact that nextCards[i] tells you which card nextNodes[i] represents,
+//street 1 == dealing turn, 2 == dealing river
 type ChanceNode struct {
 	*GameNode
 	nextCards []poker.Card
+	street int
 }
 
 func NewChanceNode(gn *GameNode, board []poker.Card, street int) *ChanceNode {
@@ -16,11 +18,13 @@ func NewChanceNode(gn *GameNode, board []poker.Card, street int) *ChanceNode {
 		return &ChanceNode{
 			GameNode:  gn,
 			nextCards: constructPossibleNextCards(board, 49),
+			street: street,
 		}
 	} else {
 		return &ChanceNode{
 			GameNode:  gn,
 			nextCards: constructPossibleNextCards(board, 48),
+			street: street,
 		}
 	}
 }
@@ -61,7 +65,7 @@ func (node *ChanceNode) CFRTraversal(traversal *Traversal, traverserReachProb, o
 	//This is because board has 4 cards, we have 2, opp has 2, thus 52-4-2-2 = 44 is the number of
 	//actual possible cards in a given hand
 	for hand := range result {
-		result[hand] /= 44
+		result[hand] /= 44.0
 	}
 
 	return result
@@ -120,4 +124,27 @@ func (node *ChanceNode) GetTraverserHandWeightingForCard(traversal *Traversal, o
 		}
 	}
 	return weight
+}
+
+//TODO: this is probably not enough of a blocker to make parallelization worth it, but needs tested
+func (node *ChanceNode) BestResponse(traversal *Traversal, opponentReachProb []float64) []float64 {
+	result := make([]float64, len(traversal.Ranges[traversal.Traverser]))
+	oppHands := traversal.Ranges[traversal.Traverser ^ 1]
+
+	for index, next := range node.nextNodes {
+		nextOppReach := make([]float64, len(opponentReachProb))
+		for hand := range opponentReachProb {
+			if !(oppHands[hand].Hand[0] == node.nextCards[index] || oppHands[hand].Hand[1] == node.nextCards[index]) {
+				nextOppReach[hand] = opponentReachProb[hand]
+			}
+		}
+		ev := next.BestResponse(traversal, nextOppReach)
+		for hand := range result {
+			result[hand] += ev[hand]
+		}
+	}
+	for hand := range result {
+		result[hand] /= 44.0
+	}
+	return result
 }
