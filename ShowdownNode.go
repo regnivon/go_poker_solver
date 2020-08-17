@@ -1,14 +1,12 @@
 package solv
 
 import (
-	"fmt"
 	"github.com/chehsunliu/poker"
-	"sort"
 )
 
 //TODO: init the hand rank pairs somewhere
 
-//HandRankPair pairs a hand with its Rank, used for the O(N) showdown evaluation using a shorted list of
+//HandRankPair pairs a hand with its Rank, used for the O(N) showdown evaluation using a sorted list of
 //ranks
 type HandRankPair struct {
 	Hand Hand
@@ -19,32 +17,36 @@ type HandRankPair struct {
 //checking back the river, or after a call action. Thus, this node will calculate EVs for hands by
 //comparing vs the opponents set of hands
 type ShowdownNode struct {
-	*GameNode
+	lastPlayer int
 	winUtility float64
-	ipRanks []HandRankPair
-	oopRanks []HandRankPair
+	cacheIndex int
+	cache *RiverEvaluationCache
 	board []poker.Card
 }
 
 //NewShowdownNode constructs a ShowdownNode
-func NewShowdownNode(gameNode *GameNode, board []poker.Card) *ShowdownNode {
-	node := ShowdownNode{GameNode: gameNode}
-	node.isTerminal = true
-	node.winUtility = node.potSize / 2.0
+func NewShowdownNode(potSize float64, lastPlayer int, board []poker.Card, cache *RiverEvaluationCache) *ShowdownNode {
+	node := ShowdownNode{
+		lastPlayer: lastPlayer,
+		cache: cache,
+	}
+	node.winUtility = potSize / 2.0
 	node.board = board
 	return &node
 }
 
 func (node *ShowdownNode) CFRTraversal(traversal *Traversal, traverserReachProb, opponentReachProb []float64) []float64 {
-	return node.GetUtil(traversal, traverserReachProb, opponentReachProb)
+	return node.GetUtil(traversal, opponentReachProb)
 }
 
 //GetUtil calculates the utility for the traverser with the efficient algorithm
-func (node *ShowdownNode) GetUtil(traversal *Traversal, traverserReachProb, opponentReachProb []float64) []float64 {
+func (node *ShowdownNode) GetUtil(traversal *Traversal, opponentReachProb []float64) []float64 {
 	if traversal.Traverser == 1 {
-		return node.Showdown(traversal, node.ipRanks, node.oopRanks, opponentReachProb)
+		return node.Showdown(traversal, node.cache.RankingCache[node.cacheIndex][1],
+			node.cache.RankingCache[node.cacheIndex][0], opponentReachProb)
 	}
-	return node.Showdown(traversal, node.oopRanks, node.ipRanks, opponentReachProb)
+	return node.Showdown(traversal, node.cache.RankingCache[node.cacheIndex][0],
+		node.cache.RankingCache[node.cacheIndex][1], opponentReachProb)
 }
 
 //Showdown calculates the hand utility for the traverser using the O(n) evaluation algorithm
@@ -142,50 +144,16 @@ func (node *ShowdownNode) ShowdownSlow(traversal *Traversal, TraverserRanks,
 	return utility
 }
 
-//FillHandRankings is called upon the first reach of this showdown node, it evaluates all hands in each
-//player's range then sorts the ranks for the O(n) utility calculation. Note that lower rank is better
-func (node *ShowdownNode) FillHandRankings(IPHands, OOPHands Range) {
-	node.ipRanks = make([]HandRankPair, len(IPHands))
-	node.oopRanks = make([]HandRankPair, len(OOPHands))
-
-	node.fillIPHandRankings(IPHands)
-	node.fillOOPHandRankings(OOPHands)
-
-	sort.Slice(node.ipRanks, func(i, j int) bool {
-		return node.ipRanks[i].Rank > node.ipRanks[j].Rank
-	})
-
-	sort.Slice(node.oopRanks, func(i, j int) bool {
-		return node.oopRanks[i].Rank > node.oopRanks[j].Rank
-	})
-}
-
-func (node *ShowdownNode) fillIPHandRankings(IPHands Range) {
-	for i := range IPHands {
-		finalHand := append(node.board, IPHands[i].Hand[0])
-		finalHand = append(finalHand, IPHands[i].Hand[1])
-		node.ipRanks[i] = HandRankPair{IPHands[i].Hand, poker.Evaluate(finalHand)}
-	}
-}
-
-func (node *ShowdownNode) fillOOPHandRankings(OOPHands Range) {
-	for i := range OOPHands {
-		finalHand := append(node.board, OOPHands[i].Hand[0])
-		finalHand = append(finalHand, OOPHands[i].Hand[1])
-		node.oopRanks[i] = HandRankPair{OOPHands[i].Hand, poker.Evaluate(finalHand)}
-	}
-}
-
 //TODO: this should use cached ranks
 func (node *ShowdownNode) BestResponse(traversal *Traversal, opponentReachProb []float64) []float64 {
 	var TraverserRanks []HandRankPair
 	var OpponentRanks []HandRankPair
 	if traversal.Traverser == 0 {
-		TraverserRanks = node.oopRanks
-		OpponentRanks = node.ipRanks
+		TraverserRanks = node.cache.RankingCache[node.cacheIndex][0]
+		OpponentRanks = node.cache.RankingCache[node.cacheIndex][1]
 	} else {
-		OpponentRanks= node.oopRanks
-		TraverserRanks= node.ipRanks
+		OpponentRanks = node.cache.RankingCache[node.cacheIndex][0]
+		TraverserRanks = node.cache.RankingCache[node.cacheIndex][1]
 	}
 	utility := make([]float64, len(TraverserRanks))
 	node.winnerShowdownProbabilityCalculation(traversal, utility, opponentReachProb, TraverserRanks, OpponentRanks)
@@ -194,5 +162,5 @@ func (node *ShowdownNode) BestResponse(traversal *Traversal, opponentReachProb [
 }
 
 func (node *ShowdownNode) PrintNodeDetails() {
-	fmt.Printf("Showdown node: last: %v pot %v oop %v ip %v\n",node.playerNode ^ 1, node.potSize, node.oopPlayerStack, node.ipPlayerStack)
+	//fmt.Printf("Showdown node: last: %v pot %v oop %v ip %v\n",node.lastPlayer, node.potSize, node.oopPlayerStack, node.ipPlayerStack)
 }
