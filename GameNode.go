@@ -5,17 +5,8 @@ import (
 )
 
 type Node interface {
-	GetUtil(traversal *Traversal, traverserReachProb, opponentReachProb []float64) []float64
-	IsTerminal() bool
-	PlayerNode() int
-	NumActions() int
-	Strategy(handIndex int) []float64
-	RegretMatchAllHands()
-	GetNext(index int) Node
-	RegretAndStrategySumsUpdate(trav *Traversal, reachProbability, nodeUtility []float64, actionUtility [][]float64)
 	CFRTraversal(traversal *Traversal, traverserReachProb, opponentReachProb []float64) []float64
 	BestResponse(traversal *Traversal, opponentReachProb []float64) []float64
-	PrintNodeDetails()
 }
 
 type GameNode struct {
