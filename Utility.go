@@ -58,13 +58,15 @@ func CheckHandOverlap(h1, h2 Hand) bool {
 	return h1[0] == h2[0] || h1[1] == h2[0] || h1[0] == h2[1] || h1[1] == h2[1]
 }
 
+func CheckHandBoardOverlap(hand Hand, board []poker.Card) bool {
+	return 	hand[0] == board[0] || hand[0] == board[1] || hand[0] == board[2] || hand[0] == board[3] ||
+		hand[0] == board[4] || hand[1] == board[0] || hand[1] == board[1] || hand[1] == board[2] ||
+		hand[1] == board[3] || hand[1] == board[4]
+}
+
 func RemoveConflicts(handRange Range, board []poker.Card) Range {
 	for i := 0;  i < len(handRange); i++ {
-		if  handRange[i].Hand[0] == board[0] || handRange[i].Hand[0] == board[1] ||
-			handRange[i].Hand[0] == board[2] || handRange[i].Hand[0] == board[3] ||
-			handRange[i].Hand[0] == board[4] || handRange[i].Hand[1] == board[0] ||
-			handRange[i].Hand[1] == board[1] || handRange[i].Hand[1] == board[2] ||
-			handRange[i].Hand[1] == board[3] || handRange[i].Hand[1] == board[4] {
+		if  CheckHandBoardOverlap(handRange[i].Hand, board) {
 			handRange = append(handRange[:i], handRange[i+1:]...)
 			i--
 		}
