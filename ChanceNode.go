@@ -1,6 +1,7 @@
 package solv
 
 import (
+	"fmt"
 	"github.com/chehsunliu/poker"
 	"sync"
 )
@@ -8,25 +9,43 @@ import (
 //ChanceNode - important notes are the fact that nextCards[i] tells you which card nextNodes[i] represents,
 //street 1 == dealing turn, 2 == dealing river
 type ChanceNode struct {
-	*GameNode
+	potSize float64
+	ipPlayerStack float64
+	oopPlayerStack float64
+
 	nextCards []poker.Card
 	street int
+
+	nextNodes []Node
 }
 
-func NewChanceNode(gn *GameNode, board []poker.Card, street int) *ChanceNode {
+func NewChanceNode(potSize, stacks float64, board []poker.Card, street int) *ChanceNode {
+	var next []poker.Card
 	if street == 1 {
-		return &ChanceNode{
-			GameNode:  gn,
-			nextCards: constructPossibleNextCards(board, 49),
-			street: street,
-		}
+		next = constructPossibleNextCards(board, 49)
 	} else {
-		return &ChanceNode{
-			GameNode:  gn,
-			nextCards: constructPossibleNextCards(board, 48),
-			street: street,
-		}
+		next = constructPossibleNextCards(board, 48)
 	}
+	node := ChanceNode{
+		potSize: potSize,
+		ipPlayerStack: stacks,
+		oopPlayerStack: stacks,
+		nextCards: next,
+		street: street,
+	}
+	return &node
+}
+
+func (node *ChanceNode) AddNextNode(next Node) {
+	node.nextNodes = append(node.nextNodes, next)
+}
+
+func (node *ChanceNode) PrintNodeDetails(level int) {
+	for i := 0; i < level; i++ {
+		fmt.Print("\t")
+	}
+	fmt.Printf("ChanceNode street %v pot %v stacks %v\n", node.street, node.potSize, node.oopPlayerStack)
+	node.nextNodes[0].PrintNodeDetails(level + 1)
 }
 
 func (node *ChanceNode) CFRTraversal(traversal *Traversal, traverserReachProb, opponentReachProb []float64) []float64 {
@@ -61,11 +80,16 @@ func (node *ChanceNode) CFRTraversal(traversal *Traversal, traverserReachProb, o
 			result[hand] += subResults[index][hand]
 		}
 	}
-	//TODO: this needs to be variable based on the street it should be 45 for flop
-	//This is because board has 4 cards, we have 2, opp has 2, thus 52-4-2-2 = 44 is the number of
-	//actual possible cards in a given hand
-	for hand := range result {
-		result[hand] /= 44.0
+	//This is because board has 4 cards, we have 2, opponent has 2, thus 52-4-2-2 = 44 is the number of
+	//actual possible cards in the deck
+	if node.street == 1 {
+		for hand := range result {
+			result[hand] /= 45.0
+		}
+	} else {
+		for hand := range result {
+			result[hand] /= 44.0
+		}
 	}
 
 	return result

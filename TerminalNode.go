@@ -122,6 +122,9 @@ func (node *TerminalNode) BestResponse(traversal *Traversal, opponentReachProb [
 	return utilities
 }
 
-func (node *TerminalNode) PrintNodeDetails() {
-	fmt.Printf("TerminalNode node: last: %v pot %v oop %v ip %v\n",node.playerNode ^ 1, node.potSize, node.oopPlayerStack, node.ipPlayerStack)
+func (node *TerminalNode) PrintNodeDetails(level int) {
+	for i := 0; i < level; i++ {
+		fmt.Print("\t")
+	}
+	fmt.Printf("TerminalNode last: %v pot %v oop %v ip %v\n",node.playerNode ^ 1, node.potSize, node.oopPlayerStack, node.ipPlayerStack)
 }

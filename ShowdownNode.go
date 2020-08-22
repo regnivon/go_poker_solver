@@ -1,10 +1,9 @@
 package solv
 
 import (
+	"fmt"
 	"github.com/chehsunliu/poker"
 )
-
-//TODO: init the hand rank pairs somewhere
 
 //HandRankPair pairs a hand with its Rank, used for the O(N) showdown evaluation using a sorted list of
 //ranks
@@ -47,6 +46,13 @@ func (node *ShowdownNode) GetUtil(traversal *Traversal, opponentReachProb []floa
 	}
 	return node.Showdown(traversal, node.cache.RankingCache[node.cacheIndex][0],
 		node.cache.RankingCache[node.cacheIndex][1], opponentReachProb)
+}
+
+func (node *ShowdownNode) PrintNodeDetails(level int) {
+	for i := 0; i < level; i++ {
+		fmt.Print("\t")
+	}
+	fmt.Printf("Showdown node: last: %v pot %v\n", node.lastPlayer, node.winUtility * 2.0)
 }
 
 //Showdown calculates the hand utility for the traverser using the O(n) evaluation algorithm
@@ -144,7 +150,6 @@ func (node *ShowdownNode) ShowdownSlow(traversal *Traversal, TraverserRanks,
 	return utility
 }
 
-//TODO: this should use cached ranks
 func (node *ShowdownNode) BestResponse(traversal *Traversal, opponentReachProb []float64) []float64 {
 	var TraverserRanks []HandRankPair
 	var OpponentRanks []HandRankPair
@@ -159,8 +164,4 @@ func (node *ShowdownNode) BestResponse(traversal *Traversal, opponentReachProb [
 	node.winnerShowdownProbabilityCalculation(traversal, utility, opponentReachProb, TraverserRanks, OpponentRanks)
 	node.loserShowdownProbabilityCalculation(traversal, utility, opponentReachProb, TraverserRanks, OpponentRanks)
 	return utility
-}
-
-func (node *ShowdownNode) PrintNodeDetails() {
-	//fmt.Printf("Showdown node: last: %v pot %v oop %v ip %v\n",node.lastPlayer, node.potSize, node.oopPlayerStack, node.ipPlayerStack)
 }

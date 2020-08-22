@@ -2,6 +2,7 @@ package solv
 
 import (
 	"fmt"
+	"github.com/chehsunliu/poker"
 	"math"
 )
 
@@ -15,6 +16,21 @@ type Traversal struct {
 	alpha float64
 	beta float64
 	gamma float64
+}
+
+//ConstructionParams - used for construction of the game tree, the i-th index of a given bets array gives that
+//bet number i.e. oopFlopBets[1] gives a slice with the bets used when responding to a one bet sequence prior
+//allInCutoff will make the only bet all in if the bettor's stack is smaller than that % of the pot.
+//The default bet is a % of the pot used when there are no specific bets for that action sequence.
+type ConstructionParams struct {
+	allInCutoff float64
+	defaultBet float64
+	ipFlopBets [][]float64
+	oopFlopBets [][]float64
+	ipTurnBets [][]float64
+	oopTurnBets [][]float64
+	ipRiverBets [][]float64
+	oopRiverBets [][]float64
 }
 
 func NewTraversal(oopRange, ipRange Range) *Traversal {
@@ -45,52 +61,74 @@ func (traversal* Traversal) GetRange(player int) Range {
 	return traversal.Ranges[player]
 }
 
-func ConstructTree(startingPot, startingStack, defBet float64, bets [][][]float64, ipHands, oopHands Range) *GameNode {
+func NewConstructionParams(defaultBet, allInCutoff float64) *ConstructionParams {
+	return &ConstructionParams{
+		defaultBet: defaultBet,
+		allInCutoff: allInCutoff,
+	}
+}
+
+func ConstructTree(startingPot, startingStack float64, params *ConstructionParams,
+					ipHands, oopHands Range, board []poker.Card) *GameNode {
 	root := NewGameNode(0, startingPot, startingStack, startingStack)
-	addSuccessorNodes(root, 0, bets, defBet)
+	cache := NewRiverEvaluationCache(oopHands, ipHands)
+	addSuccessorNodes(root, 0, params, board, cache)
 	initializeNodeHandSlices(root, ipHands, oopHands)
 	return root
 }
 
-func OutputTree(root Node, level int) {
-
-	if !root.IsTerminal() {
-		fmt.Printf("player %v Node pot size %v oop: %v ip: %v\n", root.(*GameNode).playerNode, root.(*GameNode).potSize, root.(*GameNode).oopPlayerStack, root.(*GameNode).ipPlayerStack)
-
-		for i := range root.(*GameNode).nextNodes {
-			for i := 0; i < level; i++ {
-				fmt.Print("\t")
-			}
-			node := root.(*GameNode).nextNodes[i]
-			fmt.Printf("Action %v ", i)
-			OutputTree(node, level+1)
-		}
-	} else {
-		for i := 0; i < level; i++ {
-			fmt.Print("\t")
-		}
-		root.PrintNodeDetails()
-	}
+func OutputTree(root Node) {
+	root.PrintNodeDetails(0)
 }
 
-func addSuccessorNodes(root *GameNode, betNumber int, bets [][][]float64, defBet float64) {
+func addSuccessorNodes(root *GameNode, betNumber int, params *ConstructionParams,
+						board []poker.Card, cache *RiverEvaluationCache) {
+	var street int
+	switch len(board) {
+	case 3:
+		street = 1
+	case 4:
+		street = 2
+	case 5:
+		street = 3
+	}
 	//b/c, x/x and b/f lines
 	if root.playerNode == 1 || betNumber > 0 {
-		createNextCallCheckAndFoldNodes(root, betNumber)
+		createNextCallCheckAndFoldNodes(root, betNumber, street, params, board, cache)
 	} else {
 		//x line
-		createCheckToIPNode(root, bets, defBet)
+		createCheckToIPNode(root, params, board, cache)
 	}
 	if root.oopPlayerStack > 0 && root.ipPlayerStack > 0 {
-		createNextBetNodes(root, betNumber, bets, defBet)
+		createNextBetNodes(root, betNumber, street, params, board, cache)
 	}
 }
 
-func createNextCallCheckAndFoldNodes(root *GameNode, betNumber int) {
+func createNextCallCheckAndFoldNodes(root *GameNode, betNumber, street int, params *ConstructionParams,
+									 board []poker.Card, cache *RiverEvaluationCache) {
 	lastBetSize := math.Abs(root.ipPlayerStack - root.oopPlayerStack)
 	callStacks := math.Min(root.ipPlayerStack, root.oopPlayerStack)
-	next := NewShowdownNode(NewGameNode(root.playerNode ^ 1, root.potSize + lastBetSize, callStacks, callStacks))
-	root.AddNextNode(next)
+	//go to showdown if this is the river
+	if street == 3 {
+		next := NewShowdownNode(root.potSize + lastBetSize, root.playerNode, board, cache)
+		root.AddNextNode(next)
+		index := cache.InsertBoard(board)
+		next.cacheIndex = index
+	} else if callStacks == 0 {
+		next := NewAllInShowdownNode(root.potSize + lastBetSize, street, board, cache)
+		root.AddNextNode(next)
+	} else {
+		next := NewChanceNode(root.potSize + lastBetSize, callStacks, board, street)
+		for _, card := range next.nextCards {
+			var newBoard []poker.Card
+			copy(newBoard, board)
+			newBoard = append(newBoard, card)
+			gn := NewGameNode(0, next.potSize, next.ipPlayerStack, next.oopPlayerStack)
+			next.AddNextNode(gn)
+			addSuccessorNodes(gn, 0, params, newBoard, cache)
+		}
+		root.AddNextNode(next)
+	}
 	if betNumber > 0 {
 		foldStacks := math.Max(root.ipPlayerStack, root.oopPlayerStack)
 		fold := NewTerminalNode(NewGameNode(root.playerNode ^ 1, root.potSize - lastBetSize, foldStacks, foldStacks))
@@ -98,20 +136,16 @@ func createNextCallCheckAndFoldNodes(root *GameNode, betNumber int) {
 	}
 }
 
-func createCheckToIPNode(root *GameNode, bets [][][]float64, defBet float64) {
+func createCheckToIPNode(root *GameNode, params *ConstructionParams, board []poker.Card, cache *RiverEvaluationCache) {
 	gn := NewGameNode(root.playerNode ^ 1, root.potSize, root.ipPlayerStack, root.oopPlayerStack)
 	root.AddNextNode(gn)
-	addSuccessorNodes(gn, 0, bets, defBet)
+	addSuccessorNodes(gn, 0, params, board, cache)
 }
 
-func createNextBetNodes(root *GameNode, betNumber int, bets [][][]float64, defBet float64) {
-	var currentBets []float64
+func createNextBetNodes(root *GameNode, betNumber, street int, params *ConstructionParams,
+						board []poker.Card, cache *RiverEvaluationCache) {
 
-	if bets != nil && len(bets[root.playerNode]) > betNumber {
-		currentBets = bets[root.playerNode][betNumber]
-	} else {
-		currentBets = append(currentBets, defBet)
-	}
+	currentBets := getCurrentBets(street, root.playerNode, betNumber, params)
 
 	//all bet lines
 	for index := range currentBets {
@@ -131,12 +165,36 @@ func createNextBetNodes(root *GameNode, betNumber int, bets [][][]float64, defBe
 		}
 
 		root.AddNextNode(next)
-		addSuccessorNodes(next, betNumber + 1, bets, defBet)
+		addSuccessorNodes(next, betNumber + 1, params, board, cache)
 
 		if betSize < sizing {
 			break
 		}
 	}
+}
+
+func getCurrentBets(street, player, betNumber int, params *ConstructionParams) []float64 {
+	switch street {
+	case 1:
+		if player == 0 && betNumber < len(params.oopFlopBets) {
+			return params.oopFlopBets[betNumber]
+		} else if betNumber < len(params.ipFlopBets){
+			return params.ipFlopBets[betNumber]
+		}
+	case 2:
+		if player == 0 && betNumber < len(params.oopTurnBets) {
+			return params.oopTurnBets[betNumber]
+		} else if betNumber < len(params.ipTurnBets){
+			return params.ipTurnBets[betNumber]
+		}
+	case 3:
+		if player == 0 && betNumber < len(params.oopRiverBets) {
+			return params.oopRiverBets[betNumber]
+		} else if betNumber < len(params.ipRiverBets){
+			return params.ipRiverBets[betNumber]
+		}
+	}
+	return []float64{params.defaultBet}
 }
 
 func initializeNodeHandSlices(toInit *GameNode, ipHands, oopHands Range) {
@@ -150,9 +208,9 @@ func initializeNodeHandSlices(toInit *GameNode, ipHands, oopHands Range) {
 		if node, ok := toInit.nextNodes[index].(*GameNode); ok {
 			initializeNodeHandSlices(node, ipHands, oopHands)
 		}
-		if node, ok := toInit.nextNodes[index].(*ShowdownNode); ok {
+		/*if node, ok := toInit.nextNodes[index].(*ShowdownNode); ok {
 			node.FillHandRankings(ipHands, oopHands)
-		}
+		}*/
 	}
 }
 

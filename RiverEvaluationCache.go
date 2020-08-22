@@ -57,9 +57,11 @@ func (cache *RiverEvaluationCache) FillHandRankings(board []poker.Card) [2][]Han
 func (cache *RiverEvaluationCache) fillIPHandRankings(board []poker.Card) []HandRankPair {
 	ipRanks := make([]HandRankPair, len(cache.ipRange))
 	for i := range cache.ipRange {
-		finalHand := append(board, cache.ipRange[i].Hand[0])
-		finalHand = append(finalHand, cache.ipRange[i].Hand[1])
-		ipRanks[i] = HandRankPair{cache.ipRange[i].Hand, poker.Evaluate(finalHand)}
+		if !CheckHandBoardOverlap(cache.ipRange[i].Hand, board) {
+			finalHand := append(board, cache.ipRange[i].Hand[0])
+			finalHand = append(finalHand, cache.ipRange[i].Hand[1])
+			ipRanks[i] = HandRankPair{cache.ipRange[i].Hand, poker.Evaluate(finalHand)}
+		}
 	}
 	return ipRanks
 }
@@ -67,9 +69,11 @@ func (cache *RiverEvaluationCache) fillIPHandRankings(board []poker.Card) []Hand
 func (cache *RiverEvaluationCache) fillOOPHandRankings(board []poker.Card) []HandRankPair {
 	oopRanks := make([]HandRankPair, len(cache.oopRange))
 	for i := range cache.oopRange {
-		finalHand := append(board, cache.oopRange[i].Hand[0])
-		finalHand = append(finalHand, cache.oopRange[i].Hand[1])
-		oopRanks[i] = HandRankPair{cache.oopRange[i].Hand, poker.Evaluate(finalHand)}
+		if !CheckHandBoardOverlap(cache.oopRange[i].Hand, board) {
+			finalHand := append(board, cache.oopRange[i].Hand[0])
+			finalHand = append(finalHand, cache.oopRange[i].Hand[1])
+			oopRanks[i] = HandRankPair{cache.oopRange[i].Hand, poker.Evaluate(finalHand)}
+		}
 	}
 	return oopRanks
 }

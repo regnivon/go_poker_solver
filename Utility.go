@@ -36,6 +36,57 @@ func constructPossibleNextCards(board []poker.Card, numNext int) []poker.Card {
 	return next
 }
 
+//TODO: test this method
+func constructPossibleRunouts(board []poker.Card, cache *RiverEvaluationCache) ([][]poker.Card, []int) {
+	done := make(map[int]bool)
+	runouts := make([][]poker.Card, 0, 10)
+	indices := make([]int, 0, 10)
+	if len(board) == 3 {
+		for suitIndex := range suits {
+			for rankIndex := range ranks {
+				card1 := poker.NewCard(string(ranks[rankIndex]) + string(suits[suitIndex]))
+				if !checkCardBoardOverlap(card1, board) {
+					var boardCopy []poker.Card
+					copy(boardCopy, board)
+					boardCopy = append(boardCopy, card1)
+					for suitIndex2 := range suits {
+						for rankIndex2 := range ranks {
+							card2 := poker.NewCard(string(ranks[rankIndex2]) + string(suits[suitIndex2]))
+							if !checkCardBoardOverlap(card2, boardCopy) {
+								finalBoardCopy := append(boardCopy, card2)
+								index := cache.InsertBoard(finalBoardCopy)
+								if _, ok := done[index]; !ok {
+									runouts = append(runouts, finalBoardCopy)
+									indices = append(indices, index)
+									done[index] = true
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	} else if len(board) == 4 {
+		for suitIndex := range suits {
+			for rankIndex := range ranks {
+				card := poker.NewCard(string(ranks[rankIndex]) + string(suits[suitIndex]))
+				if !checkCardBoardOverlap(card, board) {
+					var boardCopy []poker.Card
+					copy(boardCopy, board)
+					boardCopy = append(boardCopy, card)
+					index := cache.InsertBoard(boardCopy)
+					if _, ok := done[index]; !ok {
+						runouts = append(runouts, boardCopy)
+						indices = append(indices, index)
+						done[index] = true
+					}
+				}
+			}
+		}
+	}
+	return runouts, indices
+}
+
 func convertRangeToFloatSlice(rng Range) []float64 {
 	arr := make([]float64, len(rng))
 	for index := range rng {
