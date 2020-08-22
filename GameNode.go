@@ -1,12 +1,14 @@
 package solv
 
 import (
+	"fmt"
 	"math"
 )
 
 type Node interface {
 	CFRTraversal(traversal *Traversal, traverserReachProb, opponentReachProb []float64) []float64
 	BestResponse(traversal *Traversal, opponentReachProb []float64) []float64
+	PrintNodeDetails(level int)
 }
 
 type GameNode struct {
@@ -188,8 +190,14 @@ func (node *GameNode) getAverageStrategy(hand int) []float64 {
 	return averageStrategy
 }
 
-func (node *GameNode) PrintNodeDetails() {
-
+func (node *GameNode) PrintNodeDetails(level int) {
+	for i := 0; i < level; i++ {
+		fmt.Print("\t")
+	}
+	fmt.Printf("GameNode player: %v potsize: %v oop stack: %v ip stack %v\n", node.playerNode, node.potSize, node.oopPlayerStack, node.ipPlayerStack)
+	for _, child := range node.nextNodes {
+		child.PrintNodeDetails(level + 1)
+	}
 }
 
 
