@@ -10,6 +10,7 @@ import (
 type TerminalNode struct {
 	*GameNode
 	winUtility float64
+	board []poker.Card
 }
 
 //NewTerminalNode constructs a TerminalNode
@@ -60,6 +61,9 @@ func (node *TerminalNode) TraverserUtil(traversal *Traversal, travProb, oppProb 
 	}
 
 	for index := range traverserHands {
+		if CheckHandBoardOverlap(traverserHands[index].Hand, node.board) {
+			continue
+		}
 		var removal float64
 		sameHandIndex, ok := traversal.IndexCaches[opponent][traverserHands[index].Hand]
 		if ok {
@@ -109,6 +113,9 @@ func (node *TerminalNode) BestResponse(traversal *Traversal, opponentReachProb [
 	}
 
 	for index := range traverserHands {
+		if CheckHandBoardOverlap(traverserHands[index].Hand, node.board) {
+			continue
+		}
 		var removal float64
 		sameHandIndex, ok := traversal.IndexCaches[opponent][traverserHands[index].Hand]
 		if ok {

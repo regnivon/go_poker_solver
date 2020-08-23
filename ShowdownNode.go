@@ -58,7 +58,7 @@ func (node *ShowdownNode) PrintNodeDetails(level int) {
 //Showdown calculates the hand utility for the traverser using the O(n) evaluation algorithm
 func (node *ShowdownNode) Showdown(traversal *Traversal, TraverserRanks,
 	 							   OpponentRanks []HandRankPair, opponentReachProb []float64) []float64 {
-	utility := make([]float64, len(TraverserRanks))
+	utility := make([]float64, len(traversal.Ranges[traversal.Traverser]))
 	node.winnerShowdownProbabilityCalculation(traversal, utility, opponentReachProb, TraverserRanks, OpponentRanks)
 	node.loserShowdownProbabilityCalculation(traversal, utility, opponentReachProb, TraverserRanks, OpponentRanks)
 	return utility
@@ -88,11 +88,14 @@ func (node *ShowdownNode) winnerShowdownProbabilityCalculation(traversal *Traver
 
 			opIndex++
 		}
+		//fmt.Printf("%v\n", winnerProbabilitySum)
+		//fmt.Printf("%v\n", TraverserRanks[traverserRankIndex].Hand)
 		utility[traversal.IndexCaches[traversal.Traverser][TraverserRanks[traverserRankIndex].Hand]] =
 			(winnerProbabilitySum -
 				cardRemoval[TraverserRanks[traverserRankIndex].Hand[0]] -
 				cardRemoval[TraverserRanks[traverserRankIndex].Hand[1]]) * node.winUtility
 	}
+	//fmt.Printf("\nlosers\n")
 }
 
 func (node *ShowdownNode) loserShowdownProbabilityCalculation(traversal *Traversal, utility, OpponentReachProb []float64,
@@ -102,7 +105,7 @@ func (node *ShowdownNode) loserShowdownProbabilityCalculation(traversal *Travers
 
 	opponent := traversal.Traverser ^ 1
 
-	opIndex := len(OpponentReachProb) - 1
+	opIndex := len(OpponentRanks) - 1
 
 	//iterate through all of the traverser's hands, and then while we have a better hand (lower rank) increase
 	//the winProbability and account for hole card clashes
@@ -120,6 +123,7 @@ func (node *ShowdownNode) loserShowdownProbabilityCalculation(traversal *Travers
 
 			opIndex--
 		}
+	//	fmt.Printf("%v\n", loserProbabilitySum)
 		utility[traversal.IndexCaches[traversal.Traverser][TraverserRanks[traverserRankIndex].Hand]] -=
 			(loserProbabilitySum -
 				cardRemoval[TraverserRanks[traverserRankIndex].Hand[0]] -
@@ -153,6 +157,7 @@ func (node *ShowdownNode) ShowdownSlow(traversal *Traversal, TraverserRanks,
 func (node *ShowdownNode) BestResponse(traversal *Traversal, opponentReachProb []float64) []float64 {
 	var TraverserRanks []HandRankPair
 	var OpponentRanks []HandRankPair
+	//fmt.Printf("board %v\n", node.board)
 	if traversal.Traverser == 0 {
 		TraverserRanks = node.cache.RankingCache[node.cacheIndex][0]
 		OpponentRanks = node.cache.RankingCache[node.cacheIndex][1]
@@ -160,7 +165,8 @@ func (node *ShowdownNode) BestResponse(traversal *Traversal, opponentReachProb [
 		OpponentRanks = node.cache.RankingCache[node.cacheIndex][0]
 		TraverserRanks = node.cache.RankingCache[node.cacheIndex][1]
 	}
-	utility := make([]float64, len(TraverserRanks))
+	//fmt.Printf("%v\n", TraverserRanks)
+	utility := make([]float64, len(traversal.Ranges[traversal.Traverser]))
 	node.winnerShowdownProbabilityCalculation(traversal, utility, opponentReachProb, TraverserRanks, OpponentRanks)
 	node.loserShowdownProbabilityCalculation(traversal, utility, opponentReachProb, TraverserRanks, OpponentRanks)
 	return utility

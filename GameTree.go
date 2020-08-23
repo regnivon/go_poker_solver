@@ -115,12 +115,19 @@ func createNextCallCheckAndFoldNodes(root *GameNode, betNumber, street int, para
 		index := cache.InsertBoard(board)
 		next.cacheIndex = index
 	} else if callStacks == 0 {
-		next := NewAllInShowdownNode(root.potSize + lastBetSize, street, board, cache)
+		next := NewAllInShowdownNode(root.potSize + lastBetSize, street, cache)
+		runouts := constructPossibleRunouts(board, cache)
+		for _, runout := range runouts {
+			showdown := NewShowdownNode(next.potSize, root.playerNode, runout, cache)
+			index := cache.InsertBoard(runout)
+			showdown.cacheIndex = index
+			next.AddNextNode(showdown)
+		}
 		root.AddNextNode(next)
 	} else {
 		next := NewChanceNode(root.potSize + lastBetSize, callStacks, board, street)
 		for _, card := range next.nextCards {
-			var newBoard []poker.Card
+			newBoard := make([]poker.Card, len(board))
 			copy(newBoard, board)
 			newBoard = append(newBoard, card)
 			gn := NewGameNode(0, next.potSize, next.ipPlayerStack, next.oopPlayerStack)
@@ -132,6 +139,7 @@ func createNextCallCheckAndFoldNodes(root *GameNode, betNumber, street int, para
 	if betNumber > 0 {
 		foldStacks := math.Max(root.ipPlayerStack, root.oopPlayerStack)
 		fold := NewTerminalNode(NewGameNode(root.playerNode ^ 1, root.potSize - lastBetSize, foldStacks, foldStacks))
+		fold.board = board
 		root.AddNextNode(fold)
 	}
 }
@@ -147,6 +155,9 @@ func createNextBetNodes(root *GameNode, betNumber, street int, params *Construct
 
 	currentBets := getCurrentBets(street, root.playerNode, betNumber, params)
 
+	if root.potSize * params.allInCutoff >= math.Max(root.ipPlayerStack, root.oopPlayerStack) {
+		currentBets = []float64{params.allInCutoff}
+	}
 	//all bet lines
 	for index := range currentBets {
 		lastBet := math.Abs(root.ipPlayerStack - root.oopPlayerStack)
@@ -208,9 +219,13 @@ func initializeNodeHandSlices(toInit *GameNode, ipHands, oopHands Range) {
 		if node, ok := toInit.nextNodes[index].(*GameNode); ok {
 			initializeNodeHandSlices(node, ipHands, oopHands)
 		}
-		/*if node, ok := toInit.nextNodes[index].(*ShowdownNode); ok {
-			node.FillHandRankings(ipHands, oopHands)
-		}*/
+		if node, ok := toInit.nextNodes[index].(*ChanceNode); ok {
+			for chanceNextIndex := range node.nextNodes {
+				if nextNode, ok := node.nextNodes[chanceNextIndex].(*GameNode); ok {
+					initializeNodeHandSlices(nextNode, ipHands, oopHands)
+				}
+			}
+		}
 	}
 }
 
@@ -229,13 +244,20 @@ func Train(traversal *Traversal, iterations int, treeRoot *GameNode) {
 	ipRelativeProb := RangeRelativeProbabilities(traversal.Ranges[1], traversal.Ranges[0])
 	oopRelativeProb := RangeRelativeProbabilities(traversal.Ranges[0], traversal.Ranges[1])
 
+	traversal.Traverser = 0
+	oopBestResponse := treeRoot.OverallBestResponse(traversal, oopRelativeProb)
+	traversal.Traverser = 1
+	ipBestResponse := treeRoot.OverallBestResponse(traversal, ipRelativeProb)
+	fmt.Printf("Iteration 0 oop BR: %v ip BR: %v exploitability = ", oopBestResponse, ipBestResponse)
+	fmt.Printf("%v percent of the pot\n", (oopBestResponse + ipBestResponse) / 2 / treeRoot.potSize * 100)
+
 	for i := 0; i <= iterations; i++ {
 		traversal.Iteration = i
 		traversal.Traverser = 0
 		treeRoot.CFRTraversal(traversal, oop, ip)
 		traversal.Traverser = 1
 		treeRoot.CFRTraversal(traversal, ip, oop)
-		if i > 0 && i % 1000 == 0 {
+		if  i > 0 && i % 100 == 0 {
 			traversal.Traverser = 0
 			oopBestResponse := treeRoot.OverallBestResponse(traversal, oopRelativeProb)
 			traversal.Traverser = 1

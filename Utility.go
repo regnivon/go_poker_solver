@@ -24,8 +24,9 @@ func cardTo52Int(c poker.Card) int {
 func constructPossibleNextCards(board []poker.Card, numNext int) []poker.Card {
 	next := make([]poker.Card, numNext)
 	count := 0
-	for suitIndex := range suits {
-		for rankIndex := range ranks {
+	for rankIndex := range ranks {
+		for suitIndex := range suits {
+
 			card := poker.NewCard(string(ranks[rankIndex]) + string(suits[suitIndex]))
 			if !checkCardBoardOverlap(card, board) {
 				next[count] = card
@@ -37,16 +38,15 @@ func constructPossibleNextCards(board []poker.Card, numNext int) []poker.Card {
 }
 
 //TODO: test this method
-func constructPossibleRunouts(board []poker.Card, cache *RiverEvaluationCache) ([][]poker.Card, []int) {
+func constructPossibleRunouts(board []poker.Card, cache *RiverEvaluationCache) [][]poker.Card {
 	done := make(map[int]bool)
 	runouts := make([][]poker.Card, 0, 10)
-	indices := make([]int, 0, 10)
 	if len(board) == 3 {
 		for suitIndex := range suits {
 			for rankIndex := range ranks {
 				card1 := poker.NewCard(string(ranks[rankIndex]) + string(suits[suitIndex]))
 				if !checkCardBoardOverlap(card1, board) {
-					var boardCopy []poker.Card
+					boardCopy := make([]poker.Card, len(board))
 					copy(boardCopy, board)
 					boardCopy = append(boardCopy, card1)
 					for suitIndex2 := range suits {
@@ -57,7 +57,6 @@ func constructPossibleRunouts(board []poker.Card, cache *RiverEvaluationCache) (
 								index := cache.InsertBoard(finalBoardCopy)
 								if _, ok := done[index]; !ok {
 									runouts = append(runouts, finalBoardCopy)
-									indices = append(indices, index)
 									done[index] = true
 								}
 							}
@@ -71,20 +70,19 @@ func constructPossibleRunouts(board []poker.Card, cache *RiverEvaluationCache) (
 			for rankIndex := range ranks {
 				card := poker.NewCard(string(ranks[rankIndex]) + string(suits[suitIndex]))
 				if !checkCardBoardOverlap(card, board) {
-					var boardCopy []poker.Card
+					boardCopy := make([]poker.Card, len(board))
 					copy(boardCopy, board)
 					boardCopy = append(boardCopy, card)
 					index := cache.InsertBoard(boardCopy)
 					if _, ok := done[index]; !ok {
 						runouts = append(runouts, boardCopy)
-						indices = append(indices, index)
 						done[index] = true
 					}
 				}
 			}
 		}
 	}
-	return runouts, indices
+	return runouts
 }
 
 func convertRangeToFloatSlice(rng Range) []float64 {
@@ -110,14 +108,19 @@ func CheckHandOverlap(h1, h2 Hand) bool {
 }
 
 func CheckHandBoardOverlap(hand Hand, board []poker.Card) bool {
-	return 	hand[0] == board[0] || hand[0] == board[1] || hand[0] == board[2] || hand[0] == board[3] ||
-		hand[0] == board[4] || hand[1] == board[0] || hand[1] == board[1] || hand[1] == board[2] ||
-		hand[1] == board[3] || hand[1] == board[4]
+	for _, card := range hand {
+		for _, boardCard := range board {
+			if boardCard == card {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func RemoveConflicts(handRange Range, board []poker.Card) Range {
 	for i := 0;  i < len(handRange); i++ {
-		if  CheckHandBoardOverlap(handRange[i].Hand, board) {
+		if CheckHandBoardOverlap(handRange[i].Hand, board) {
 			handRange = append(handRange[:i], handRange[i+1:]...)
 			i--
 		}
