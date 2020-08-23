@@ -185,23 +185,18 @@ func (node *ChanceNode) BestResponse(traversal *Traversal, opponentReachProb []f
 			}
 		}
 		ev := next.BestResponse(traversal, nextOppReach)
-		evSum := 0.0
-		for _, res := range ev {
-			evSum += res
-		}
-		//fmt.Printf("card %v ev %v\n", node.nextCards[index], evSum)
-		//fmt.Printf("card %v ev %v\n", node.nextCards[index], nextOppReach)
 		for hand := range result {
 			result[hand] += ev[hand]
 		}
 	}
-	for hand := range result {
-		result[hand] /= 44.0
+	if node.street == 1 {
+		for hand := range result {
+			result[hand] /= 45.0
+		}
+	} else {
+		for hand := range result {
+			result[hand] /= 44.0
+		}
 	}
-	sum := 0.0
-	for hand := range result {
-		sum += result[hand]
-	}
-	//fmt.Printf("ev %v\n", sum)
 	return result
 }
