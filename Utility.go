@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const suits = "hscd"
+const suits = "shdc"
 const ranks = "23456789TJQKA"
 
 func cardTo52Int(c poker.Card) int {
@@ -21,12 +21,17 @@ func cardTo52Int(c poker.Card) int {
 	return int( 4 * rank + suit)
 }
 
+func intToCard(i int) poker.Card {
+	suit := i % 4
+	rank := i / 4
+	return poker.NewCard(string(ranks[rank]) + string(suits[suit]))
+}
+
 func constructPossibleNextCards(board []poker.Card, numNext int) []poker.Card {
 	next := make([]poker.Card, numNext)
 	count := 0
 	for rankIndex := range ranks {
 		for suitIndex := range suits {
-
 			card := poker.NewCard(string(ranks[rankIndex]) + string(suits[suitIndex]))
 			if !checkCardBoardOverlap(card, board) {
 				next[count] = card
@@ -39,47 +44,36 @@ func constructPossibleNextCards(board []poker.Card, numNext int) []poker.Card {
 
 //TODO: test this method
 func constructPossibleRunouts(board []poker.Card, cache *RiverEvaluationCache) [][]poker.Card {
-	done := make(map[int]bool)
 	runouts := make([][]poker.Card, 0, 10)
 	if len(board) == 3 {
-		for suitIndex := range suits {
-			for rankIndex := range ranks {
-				card1 := poker.NewCard(string(ranks[rankIndex]) + string(suits[suitIndex]))
-				if !checkCardBoardOverlap(card1, board) {
-					boardCopy := make([]poker.Card, len(board))
-					copy(boardCopy, board)
-					boardCopy = append(boardCopy, card1)
-					for suitIndex2 := range suits {
-						for rankIndex2 := range ranks {
-							card2 := poker.NewCard(string(ranks[rankIndex2]) + string(suits[suitIndex2]))
-							if !checkCardBoardOverlap(card2, boardCopy) {
-								finalBoardCopy := append(boardCopy, card2)
-								index := cache.InsertBoard(finalBoardCopy)
-								if _, ok := done[index]; !ok {
-									runouts = append(runouts, finalBoardCopy)
-									done[index] = true
-								}
-							}
-						}
-					}
-				}
+		for i := 0; i < 52; i++ {
+			card := intToCard(i)
+			if checkCardBoardOverlap(card, board) {
+				continue
 			}
+			for j := i+1; j < 52; j++ {
+				riverCard := intToCard(j)
+				if checkCardBoardOverlap(riverCard, board) {
+					continue
+				}
+				boardCopy := make([]poker.Card, 5)
+				copy(boardCopy, board)
+				boardCopy[3] = card
+				boardCopy[4] = riverCard
+				runouts = append(runouts, boardCopy)
+			}
+
 		}
 	} else if len(board) == 4 {
-		for suitIndex := range suits {
-			for rankIndex := range ranks {
-				card := poker.NewCard(string(ranks[rankIndex]) + string(suits[suitIndex]))
-				if !checkCardBoardOverlap(card, board) {
-					boardCopy := make([]poker.Card, len(board))
-					copy(boardCopy, board)
-					boardCopy = append(boardCopy, card)
-					index := cache.InsertBoard(boardCopy)
-					if _, ok := done[index]; !ok {
-						runouts = append(runouts, boardCopy)
-						done[index] = true
-					}
-				}
+		for i := 0; i < 52; i++ {
+			card := intToCard(i)
+			if checkCardBoardOverlap(card, board) {
+				continue
 			}
+			boardCopy := make([]poker.Card, 5)
+			copy(boardCopy, board)
+			boardCopy[4] = card
+			runouts = append(runouts, boardCopy)
 		}
 	}
 	return runouts

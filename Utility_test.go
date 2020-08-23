@@ -57,3 +57,16 @@ func TestCardTo52Int(t *testing.T) {
 	assert.Equal(t, 33, cardTo52Int(c4))
 	assert.Equal(t, 22, cardTo52Int(c5))
 }
+
+func TestIntToCard(t *testing.T) {
+	c1 := poker.NewCard("2s")
+	c2 := poker.NewCard("Ac")
+	c3 := poker.NewCard("Js")
+	c4 := poker.NewCard("Th")
+	c5 := poker.NewCard("7d")
+	assert.Equal(t, c1, intToCard(0))
+	assert.Equal(t, c2, intToCard(51))
+	assert.Equal(t, c3, intToCard(36))
+	assert.Equal(t, c4, intToCard(33))
+	assert.Equal(t, c5, intToCard(22))
+}
