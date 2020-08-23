@@ -200,12 +200,6 @@ func (node *GameNode) PrintNodeDetails(level int) {
 	}
 }
 
-
-//GetUtil abstract in normal game nodes
-func (node *GameNode) GetUtil(traversal *Traversal, traverserReachProb, opponentReachProb []float64) []float64 {
-	return nil
-}
-
 func (node *GameNode) CFRTraversal(traversal *Traversal, traverserReachProb, opponentReachProb []float64) []float64 {
 
 	node.RegretMatchAllHands()

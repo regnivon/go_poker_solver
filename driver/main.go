@@ -24,8 +24,8 @@ func main() {
 	} 
 
 
-	oopHands := "KQ, QJ, JT, T9, 98, 77+"
-	ipHands := "KQ, QJ, JT, T9, 98, 77+"
+	oopHands := "KQs, QJs, JTs, T9s, 98s, 77+"
+	ipHands := "KQs, QJs, JTs, T9s, 98s, 77+"
 	board := []poker.Card{poker.NewCard("Ac"), poker.NewCard("7s"), poker.NewCard("5s"),
 		}//poker.NewCard("3d"), poker.NewCard("2h")
 
@@ -47,11 +47,11 @@ func main() {
 
 
 	params := solv.NewConstructionParams(0.75, 1.2)
-	tree := solv.ConstructTree(400, 400, params, ip, oop, board)
+	tree := solv.ConstructTree(6, 100, params, ip, oop, board)
 	solv.OutputTree(tree)
 	traversal := solv.NewTraversal(oop, ip)
 	//the result should be -0.9 +0.9 for the suited game
-	solv.Train(traversal, 500, tree)
+	solv.Train(traversal, 200, tree)
 	/*node := tree.GetNext(0).(*solv.GameNode)
 	for index, hand := range ip {
 		fmt.Printf("%v %v\n", hand.Hand, node.Strategy(index))

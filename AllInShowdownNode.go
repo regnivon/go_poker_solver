@@ -42,13 +42,19 @@ func (node *AllInShowdownNode) CFRTraversal(traversal *Traversal, traverserReach
 			}
 		}
 		runoutEV := next.CFRTraversal(traversal, traverserReachProb, newReach)
-		for i := range runoutEV {
-			utility[i] += runoutEV[i]
+		if node.street == 1 {
+			for i := range runoutEV {
+				utility[i] += runoutEV[i] * 2
+			}
+		} else {
+			for i := range runoutEV {
+				utility[i] += runoutEV[i]
+			}
 		}
 	}
 	if node.street == 1 {
 		for i := range utility {
-			utility[i] /= 45.0
+			utility[i] /= 1980.0
 		}
 	} else {
 		for i := range utility {
@@ -74,12 +80,22 @@ func (node *AllInShowdownNode) BestResponse(traversal *Traversal, opponentReachP
 		nodeUtility := next.BestResponse(traversal, newReach)
 		if node.street == 1 {
 			for i := range utility {
-				utility[i] += nodeUtility[i] / 45.0
+				utility[i] += nodeUtility[i] * 2
 			}
 		} else {
 			for i := range utility {
-				utility[i] += nodeUtility[i] / 44.0
+				utility[i] += nodeUtility[i]
 			}
+		}
+	}
+
+	if node.street == 1 {
+		for i := range utility {
+			utility[i] /= 1980.0
+		}
+	} else {
+		for i := range utility {
+			utility[i] /= 44.0
 		}
 	}
 	//fmt.Printf("util %v\n", utility)

@@ -229,15 +229,6 @@ func initializeNodeHandSlices(toInit *GameNode, ipHands, oopHands Range) {
 	}
 }
 
-func pruneStrategiesAndRegret(root *GameNode) {
-	root.resetStrategySums()
-	for index := range root.nextNodes {
-		if node, ok := root.nextNodes[index].(*GameNode); ok {
-			pruneStrategiesAndRegret(node)
-		}
-	}
-}
-
 func Train(traversal *Traversal, iterations int, treeRoot *GameNode) {
 	ip := convertRangeToFloatSlice(traversal.Ranges[1])
 	oop := convertRangeToFloatSlice(traversal.Ranges[0])
@@ -248,6 +239,7 @@ func Train(traversal *Traversal, iterations int, treeRoot *GameNode) {
 	oopBestResponse := treeRoot.OverallBestResponse(traversal, oopRelativeProb)
 	traversal.Traverser = 1
 	ipBestResponse := treeRoot.OverallBestResponse(traversal, ipRelativeProb)
+
 	fmt.Printf("Iteration 0 oop BR: %v ip BR: %v exploitability = ", oopBestResponse, ipBestResponse)
 	fmt.Printf("%v percent of the pot\n", (oopBestResponse + ipBestResponse) / 2 / treeRoot.potSize * 100)
 
@@ -257,14 +249,13 @@ func Train(traversal *Traversal, iterations int, treeRoot *GameNode) {
 		treeRoot.CFRTraversal(traversal, oop, ip)
 		traversal.Traverser = 1
 		treeRoot.CFRTraversal(traversal, ip, oop)
-		if  i > 0 && i % 100 == 0 {
+		if  i > 0 && i % 25 == 0 {
 			traversal.Traverser = 0
 			oopBestResponse := treeRoot.OverallBestResponse(traversal, oopRelativeProb)
 			traversal.Traverser = 1
 			ipBestResponse := treeRoot.OverallBestResponse(traversal, ipRelativeProb)
 			fmt.Printf("Iteration %v oop BR: %v ip BR: %v exploitability = ", i, oopBestResponse, ipBestResponse)
 			fmt.Printf("%v percent of the pot\n", (oopBestResponse + ipBestResponse) / 2 / treeRoot.potSize * 100)
-			//pruneStrategiesAndRegret(treeRoot)
 		}
 	}
 }
