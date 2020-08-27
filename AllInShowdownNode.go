@@ -2,6 +2,7 @@ package solv
 
 import (
 	"fmt"
+	//"os"
 )
 
 type AllInShowdownNode struct {
@@ -98,13 +99,5 @@ func (node *AllInShowdownNode) BestResponse(traversal *Traversal, opponentReachP
 			utility[i] /= 44.0
 		}
 	}
-	//fmt.Printf("util %v\n", utility)
-
-
-	/*sum := 0.0
-	for hand := range utility {
-		sum += utility[hand]
-	}
-	fmt.Printf("ev %v\n", sum) */
 	return utility
 }

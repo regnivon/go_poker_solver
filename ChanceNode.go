@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/chehsunliu/poker"
 	"sync"
+
+	//"sync"
 )
 
 //ChanceNode - important notes are the fact that nextCards[i] tells you which card nextNodes[i] represents,
@@ -54,12 +56,6 @@ func (node *ChanceNode) CFRTraversal(traversal *Traversal, traverserReachProb, o
 	oppHands := traversal.Ranges[traversal.Traverser ^ 1]
 	travHands :=  traversal.Ranges[traversal.Traverser]
 
-	//weights := node.GetTraverserHandWeightingForCard(traversal, opponentReachProb)
-	/*for index, hand := range traversal.Ranges[0] {
-		fmt.Printf("%v %v\n", hand, weights[index])
-	}
-	os.Exit(0) */
-
 	var wg sync.WaitGroup
 	wg.Add(len(node.nextNodes))
 	for index, next := range node.nextNodes {
@@ -69,7 +65,7 @@ func (node *ChanceNode) CFRTraversal(traversal *Traversal, traverserReachProb, o
 			nextOpp := make([]float64, len(opponentReachProb))
 			for hand := range nextTrav {
 				if !(travHands[hand].Hand[0] == node.nextCards[i] || travHands[hand].Hand[1] == node.nextCards[i]) {
-					nextTrav[hand] = traverserReachProb[hand] //* weights[hand + i * len(traverserReachProb)]
+					nextTrav[hand] = traverserReachProb[hand]
 				}
 			}
 			for hand := range nextOpp {
@@ -82,13 +78,14 @@ func (node *ChanceNode) CFRTraversal(traversal *Traversal, traverserReachProb, o
 		}(index, next)
 	}
 	wg.Wait()
-	/*
+
+/* //this is the serial version
 	for i, next := range node.nextNodes {
 		nextTrav := make([]float64, len(traverserReachProb))
 		nextOpp := make([]float64, len(opponentReachProb))
 		for hand := range nextTrav {
 			if !(travHands[hand].Hand[0] == node.nextCards[i] || travHands[hand].Hand[1] == node.nextCards[i]) {
-				nextTrav[hand] = traverserReachProb[hand] * weights[hand + i * len(traverserReachProb)]
+				nextTrav[hand] = traverserReachProb[hand]
 			}
 		}
 		for hand := range nextOpp {
@@ -115,7 +112,62 @@ func (node *ChanceNode) CFRTraversal(traversal *Traversal, traverserReachProb, o
 			result[hand] /= 44.0
 		}
 	}
+	return result
+}
 
+func (node *ChanceNode) BestResponse(traversal *Traversal, opponentReachProb []float64) []float64 {
+	result := make([]float64, len(traversal.Ranges[traversal.Traverser]))
+	oppHands := traversal.Ranges[traversal.Traverser ^ 1]
+
+	/* //This is the serial version
+	for index, next := range node.nextNodes {
+		nextOppReach := make([]float64, len(opponentReachProb))
+		for hand := range opponentReachProb {
+			if !(oppHands[hand].Hand[0] == node.nextCards[index] || oppHands[hand].Hand[1] == node.nextCards[index]) {
+				nextOppReach[hand] = opponentReachProb[hand]
+			}
+		}
+		ev := next.BestResponse(traversal, nextOppReach)
+		for hand := range result {
+			result[hand] += ev[hand]
+		}
+	}
+	*/
+
+
+	subResults := make([][]float64, len(node.nextCards))
+	var wg sync.WaitGroup
+	wg.Add(len(node.nextNodes))
+	for index, next := range node.nextNodes {
+		go func(i int, nextNode Node) {
+			defer wg.Done()
+			nextOpp := make([]float64, len(opponentReachProb))
+
+			for hand := range nextOpp {
+				if !(oppHands[hand].Hand[0] == node.nextCards[i] || oppHands[hand].Hand[1] == node.nextCards[i]) {
+					nextOpp[hand] = opponentReachProb[hand]
+				}
+			}
+			subResults[i] = nextNode.BestResponse(traversal, nextOpp)
+		}(index, next)
+	}
+	wg.Wait()
+
+	for index := range subResults {
+		for hand := range result {
+			result[hand] += subResults[index][hand]
+		}
+	}
+
+	if node.street == 1 {
+		for hand := range result {
+			result[hand] /= 45.0
+		}
+	} else {
+		for hand := range result {
+			result[hand] /= 44.0
+		}
+	}
 	return result
 }
 
@@ -125,6 +177,7 @@ func (node *ChanceNode) CFRTraversal(traversal *Traversal, traverserReachProb, o
 //a card will come out while holding a given hand, respecting the fact that if we are holding a particular card
 //we might be blocking our opponent from blocking a turn/river card. This will be utilized
 //to re-weight the traverser reach probabilities for each possible turn/river card.
+//NOTE: Pretty sure this is not necessary results seem to be the same either way, need to think on that more
 func (node *ChanceNode) GetTraverserHandWeightingForCard(traversal *Traversal, opponentReachProb []float64) []float64  {
 	travHands := traversal.Ranges[traversal.Traverser]
 	oppHands := traversal.Ranges[traversal.Traverser ^ 1]
@@ -172,36 +225,4 @@ func (node *ChanceNode) GetTraverserHandWeightingForCard(traversal *Traversal, o
 		}
 	}
 	return weight
-}
-
-func (node *ChanceNode) BestResponse(traversal *Traversal, opponentReachProb []float64) []float64 {
-	result := make([]float64, len(traversal.Ranges[traversal.Traverser]))
-	oppHands := traversal.Ranges[traversal.Traverser ^ 1]
-
-	for index, next := range node.nextNodes {
-		nextOppReach := make([]float64, len(opponentReachProb))
-		for hand := range opponentReachProb {
-			if !(oppHands[hand].Hand[0] == node.nextCards[index] || oppHands[hand].Hand[1] == node.nextCards[index]) {
-				nextOppReach[hand] = opponentReachProb[hand]
-			}
-		}
-		ev := next.BestResponse(traversal, nextOppReach)
-		for hand := range result {
-			result[hand] += ev[hand]
-		}
-	}
-
-
-	if node.street == 1 {
-		for hand := range result {
-			result[hand] /= 45.0
-		}
-	} else {
-		for hand := range result {
-			result[hand] /= 44.0
-		}
-	}
-
-	//fmt.Printf("%v %v %v %v\n", node.street, node.oopPlayerStack, node.ipPlayerStack ,sum)
-	return result
 }

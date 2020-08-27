@@ -1,8 +1,8 @@
 package solv
 
 import (
-	"github.com/chehsunliu/poker"
 	"fmt"
+	"github.com/chehsunliu/poker"
 )
 
 //TerminalNode is a GameNode that occurs in the GameTree after the prior node action is a fold

@@ -31,6 +31,7 @@ func NewShowdownNode(potSize float64, lastPlayer int, board []poker.Card, cache 
 	}
 	node.winUtility = potSize / 2.0
 	node.board = board
+	node.cacheIndex = 0
 	return &node
 }
 
@@ -88,14 +89,11 @@ func (node *ShowdownNode) winnerShowdownProbabilityCalculation(traversal *Traver
 
 			opIndex++
 		}
-		//fmt.Printf("%v\n", winnerProbabilitySum)
-		//fmt.Printf("%v\n", TraverserRanks[traverserRankIndex].Hand)
 		utility[traversal.IndexCaches[traversal.Traverser][TraverserRanks[traverserRankIndex].Hand]] =
 			(winnerProbabilitySum -
 				cardRemoval[TraverserRanks[traverserRankIndex].Hand[0]] -
 				cardRemoval[TraverserRanks[traverserRankIndex].Hand[1]]) * node.winUtility
 	}
-	//fmt.Printf("\nlosers\n")
 }
 
 func (node *ShowdownNode) loserShowdownProbabilityCalculation(traversal *Traversal, utility, OpponentReachProb []float64,
@@ -123,7 +121,6 @@ func (node *ShowdownNode) loserShowdownProbabilityCalculation(traversal *Travers
 
 			opIndex--
 		}
-	//	fmt.Printf("%v\n", loserProbabilitySum)
 		utility[traversal.IndexCaches[traversal.Traverser][TraverserRanks[traverserRankIndex].Hand]] -=
 			(loserProbabilitySum -
 				cardRemoval[TraverserRanks[traverserRankIndex].Hand[0]] -
@@ -157,7 +154,6 @@ func (node *ShowdownNode) ShowdownSlow(traversal *Traversal, TraverserRanks,
 func (node *ShowdownNode) BestResponse(traversal *Traversal, opponentReachProb []float64) []float64 {
 	var TraverserRanks []HandRankPair
 	var OpponentRanks []HandRankPair
-	//fmt.Printf("board %v\n", node.board)
 	if traversal.Traverser == 0 {
 		TraverserRanks = node.cache.RankingCache[node.cacheIndex][0]
 		OpponentRanks = node.cache.RankingCache[node.cacheIndex][1]
@@ -165,7 +161,6 @@ func (node *ShowdownNode) BestResponse(traversal *Traversal, opponentReachProb [
 		OpponentRanks = node.cache.RankingCache[node.cacheIndex][0]
 		TraverserRanks = node.cache.RankingCache[node.cacheIndex][1]
 	}
-	//fmt.Printf("%v\n", TraverserRanks)
 	utility := make([]float64, len(traversal.Ranges[traversal.Traverser]))
 	node.winnerShowdownProbabilityCalculation(traversal, utility, opponentReachProb, TraverserRanks, OpponentRanks)
 	node.loserShowdownProbabilityCalculation(traversal, utility, opponentReachProb, TraverserRanks, OpponentRanks)
