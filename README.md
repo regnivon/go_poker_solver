@@ -1,5 +1,5 @@
 # Go Poker Solver
-###Note: This project has been abandoned in favor of a c++ implementation, which is much, much faster
+###Note: This project has been abandoned in favor of a c++ implementation, which is much, much faster. Thus the implementation is not maximally efficient, and te tests are somewhat broken.
  
 This program solves for the nash equilibrium of flop, turn, and river subgames of Texas Hold'em poker.
 It allows for extensive tree building. Results were checked against a commercial program, 
