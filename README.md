@@ -1,6 +1,11 @@
 # Go Poker Solver
 ###Note: This project has been abandoned in favor of a c++ implementation, which is much, much faster. Thus the implementation is not maximally efficient, and te tests are somewhat broken.
  
+The algorithms used are a mixture of the ideas from: 
+Accelerating Best Response Calculation in Large Extensive Games Johanson et. al. 
+Efficient Nash Equilibrium Approximation through Monte Carlo Counterfactual Regret Minimization Johanson et. al. 
+Solving Imperfect-Information Games via Discounted Regret Minimization Brown et. al.
+
 This program solves for the nash equilibrium of flop, turn, and river subgames of Texas Hold'em poker.
 It allows for extensive tree building. Results were checked against a commercial program, 
 and the best response utilities calculated were the same for several given inputs. Speed was the primary issue,
