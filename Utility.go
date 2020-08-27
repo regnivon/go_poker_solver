@@ -42,7 +42,6 @@ func constructPossibleNextCards(board []poker.Card, numNext int) []poker.Card {
 	return next
 }
 
-//TODO: test this method
 func constructPossibleRunouts(board []poker.Card, cache *RiverEvaluationCache) [][]poker.Card {
 	runouts := make([][]poker.Card, 0, 10)
 	if len(board) == 3 {
@@ -211,9 +210,9 @@ func processHandPlus(base string, percentage float64, handRange HandToFloatMap) 
 	ranks := "23456789TJQKA"
 	suited := strings.Contains(base, "s")
 	offsuit := strings.Contains(base, "o")
-	startIndex := strings.Index(ranks, string(base[0]))
+	startIndex := strings.Index(ranks, string(base[1]))
 	for i := startIndex; i < len(ranks); i++ {
-		currentBase := string(ranks[i]) + string(base[1])
+		currentBase := string(base[0]) + string(ranks[i])
 		if !suited && !offsuit {
 			processHandBoth(currentBase, percentage, handRange)
 		} else if suited {
